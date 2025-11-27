@@ -4,7 +4,7 @@ from PyQt6.QtGui import QPen, QBrush, QColor
 class FieldMonopoly(QGraphicsScene):
     def __init__(self, cell_size=50):
         super().__init__()
-        self.cell_size = 50
+        self.cell_size = cell_size
         self.setSceneRect(0, 0, 9 * cell_size, 9 * cell_size)
         self.draw_field()
 
