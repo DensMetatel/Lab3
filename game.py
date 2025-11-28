@@ -1,11 +1,12 @@
-# game_logic.py
 from dice import Dice
 
 class Game:
-    def __init__(self, players, grid_size=9):
+    def __init__(self, players, field, grid_size=9):
         self.players = players
+        self.field = field
         self.grid_size = grid_size
         self.path = self._build_path()
+        self.cells = field.cells
         for p in self.players:
             p.set_path(self.path)
         self.current_player_index = 0
@@ -26,18 +27,15 @@ class Game:
     def _normalize_roll_result(self, roll_result):
         if isinstance(roll_result, int):
             return roll_result, None, None
-        if isinstance(roll_result, tuple) or isinstance(roll_result, list):
+        if isinstance(roll_result, (tuple, list)):
             if len(roll_result) == 0:
                 return 0, None, None
             if len(roll_result) == 1:
-                steps = roll_result[0]
-                return steps, None, None
+                return roll_result[0], None, None
             d1, d2 = roll_result[0], roll_result[1]
-            steps = d1 + d2
-            return steps, d1, d2
+            return d1 + d2, d1, d2
         try:
-            steps = int(roll_result)
-            return steps, None, None
+            return int(roll_result), None, None
         except Exception:
             return 0, None, None
 
@@ -50,6 +48,7 @@ class Game:
 
         new_index = player.index
         new_coord = self.path[new_index]
+        new_cell = self.cells[new_index]
 
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
 
@@ -60,5 +59,7 @@ class Game:
             'd1': d1,
             'd2': d2,
             'new_index': new_index,
-            'new_coord': new_coord
+            'new_coord': new_coord,
+            'new_cell': new_cell,
+            'player_money': 1500
         }

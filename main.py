@@ -1,6 +1,4 @@
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QGraphicsView, QInputDialog
-)
+from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsView, QInputDialog
 from PyQt6.QtGui import QAction
 from field import FieldMonopoly
 from player import Player
@@ -19,16 +17,18 @@ class GameWindow(QMainWindow):
         super().__init__()
 
         self.cell_size = 50
-        self.num_players = 4
-        self.window_width = self.cell_size * 9 + 150
+        self.window_width = self.cell_size * 9 + 350
         self.window_height = self.cell_size * 9 + 100
+        self.setMinimumSize(600, 600)
 
         self.setWindowTitle("Монополия")
         self.setGeometry(100, 100, self.window_width, self.window_height)
+
         self.num_players, ok = QInputDialog.getInt(
             self,
             "Количество игроков",
-            "Введите число игроков (2–4):", 2, 2, 4)
+            "Введите число игроков (2–4):", 2, 2, 4
+        )
         if not ok:
             self.num_players = 2
 
@@ -36,9 +36,17 @@ class GameWindow(QMainWindow):
         self.view = QGraphicsView(self.field, self)
         self.setCentralWidget(self.view)
 
-        self.players = self.create_players()
+        self.players = [
+            Player(
+                name=PLAYER_DATA[i][0],
+                icon=PLAYER_DATA[i][1],
+                color=PLAYER_DATA[i][2],
+                cell_size=self.cell_size
+            )
+            for i in range(self.num_players)
+        ]
 
-        self.game = Game(self.players, grid_size=9)
+        self.game = Game(self.players, self.field, grid_size=9)
 
         for p in self.players:
             self.field.addItem(p.token)
@@ -54,17 +62,6 @@ class GameWindow(QMainWindow):
 
         self.init_menu()
 
-    def create_players(self):
-        return [
-            Player(
-                name=PLAYER_DATA[i][0],
-                icon=PLAYER_DATA[i][1],
-                color=PLAYER_DATA[i][2],
-                cell_size=self.cell_size
-            )
-            for i in range(self.num_players)
-        ]
-
     def set_window_size(self, width: int, height: int):
         self.setGeometry(self.x(), self.y(), width, height)
 
@@ -78,7 +75,8 @@ class GameWindow(QMainWindow):
 
     def change_window_size(self):
         text, ok = QInputDialog.getText(
-            self, "Настройка окна", "Введите размеры (ширина x высота):", text=f"{self.window_width}x{self.window_height}"
+            self, "Настройка окна", "Введите размеры (ширина x высота):",
+            text=f"{self.window_width}x{self.window_height}"
         )
         if ok and "x" in text:
             try:
