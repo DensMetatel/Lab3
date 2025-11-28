@@ -49,7 +49,7 @@ class GameWindow(QMainWindow):
         self.update_status_bar()
 
         self.action_log = QLabel("", self)
-        self.action_log.setGeometry(10, self.height()-50, 500, 30)  # поднят на 50 пикселей
+        self.action_log.setGeometry(10, self.height()-50, 500, 30)
         self.action_log.show()
 
         self.init_menu()
