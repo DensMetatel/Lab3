@@ -28,18 +28,21 @@ class Game:
 
         logs = [f"{player.name} попал на {cell.name}"]
 
+        # Проход старт
         if old_pos + steps >= len(self.cells):
             player.money += 200
             logs.append("Прошёл поле Вперёд и получил $200")
 
         await_purchase = False
 
+        # Логика клеток
         if cell.cell_type == "street":
             if cell.owner is None and cell.price > 0:
                 await_purchase = True
             elif cell.owner is not None and cell.owner != player:
                 rent = cell.price
                 self.pay_or_sell(player, rent, f"платит аренду ${rent} владельцу {cell.owner.name}", logs)
+                # начисляем реально уплаченное
                 paid = min(player.money + rent, rent)
                 cell.owner.money += paid
 
@@ -65,6 +68,7 @@ class Game:
         if self.parent_window:
             self.parent_window.add_log(" | ".join(logs))
 
+        # Проверяем банкротство после хода
         self.check_game_over()
         return {
             'player': player,
@@ -74,8 +78,8 @@ class Game:
         }
 
     def pay_or_sell(self, player, amount, action_desc, logs):
+        # Пробуем продать улицы для покрытия долга
         while player.money < amount:
-            # ищем улицы игрока
             streets = sorted([c for c in self.field.cells if getattr(c, "owner", None) == player],
                              key=lambda x: x.price)
             if not streets:
@@ -116,13 +120,22 @@ class Game:
         return self.current_player()
 
     def check_game_over(self):
-        active_players = [p for p in self.players if self.has_assets(p)]
-        if len(active_players) <= 1:
-            self.game_over = True
-            winner = max(self.players, key=lambda p: p.money)
-            if self.parent_window:
-                self.parent_window.add_log(f"Игра окончена! Побеждает {winner.name} с ${winner.money}!")
-            return True
+        # Игра заканчивается, если есть хотя бы один банкрот
+        for player in self.players:
+            if not self.has_assets(player):
+                self.game_over = True
+                # Победитель среди остальных
+                winner_candidates = [p for p in self.players if self.has_assets(p)]
+                if winner_candidates:
+                    winner = max(winner_candidates, key=lambda p: p.money)
+                    if self.parent_window:
+                        self.parent_window.add_log(
+                            f"Игра окончена! Побеждает {winner.name} с ${winner.money}!"
+                        )
+                else:
+                    if self.parent_window:
+                        self.parent_window.add_log("Все игроки банкроты! Нет победителя.")
+                return True
         return False
 
     def has_assets(self, player):
