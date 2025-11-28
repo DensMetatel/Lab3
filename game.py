@@ -30,7 +30,7 @@ class Game:
 
         if old_pos + steps >= len(self.cells):
             player.money += 200
-            logs.append("Прошёл старт и получил $200")
+            logs.append("Прошёл поле Вперёд и получил $200")
 
         await_purchase = False
 
@@ -74,27 +74,23 @@ class Game:
         }
 
     def pay_or_sell(self, player, amount, action_desc, logs):
-        if amount <= player.money:
-            player.money -= amount
-            logs.append(action_desc)
-            return
-
-        streets = sorted([c for c in self.field.cells if getattr(c, "owner", None) == player],
-                         key=lambda x: x.price)
-        for street in streets:
-            if player.money >= amount:
+        while player.money < amount:
+            # ищем улицы игрока
+            streets = sorted([c for c in self.field.cells if getattr(c, "owner", None) == player],
+                             key=lambda x: x.price)
+            if not streets:
                 break
+            street = streets[0]
             player.money += street.price
             street.owner = None
-            logs.append(f"продал {street.name} за ${street.price}, чтобы откупиться")
+            logs.append(f"{player.name} продал {street.name} за ${street.price}, чтобы попытаться заплатить долг")
 
-        player.money -= amount
-
-        if player.money < 0:
-            player.money = 0
-            logs.append(f"{player.name} не смог заплатить и банкрот!")
-        else:
+        if player.money >= amount:
+            player.money -= amount
             logs.append(action_desc)
+        else:
+            logs.append(f"{player.name} не смог заплатить и банкрот!")
+            player.money = 0
 
     def find_jail_cell(self):
         for c in self.cells:
