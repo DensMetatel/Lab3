@@ -20,6 +20,9 @@ class Interface(QWidget):
             return
 
         result = self.game.roll_and_move()
+        if result is None:
+            return
+
         player = result['player']
         cell = result['new_cell']
 
@@ -28,8 +31,6 @@ class Interface(QWidget):
             self.ask_purchase(player, cell)
         else:
             self.game.next_player()
-
-        self.update_status()
 
     def ask_purchase(self, player, cell):
         msg_box = QMessageBox(self)
@@ -42,15 +43,17 @@ class Interface(QWidget):
                 if player.money >= cell.price:
                     player.money -= cell.price
                     cell.owner = player
+                    text = f"{player.name} купил {cell.name}"
+                else:
+                    text = f"{player.name} хотел купить {cell.name}, но не хватило денег"
+            else:
+                text = f"{player.name} отказался от покупки {cell.name}"
+
             self.waiting_for_purchase = False
             self.game.next_player()
-            self.update_status()
+            if self.parent_window:
+                self.parent_window.add_log(text)
             msg_box.deleteLater()
 
         msg_box.buttonClicked.connect(handle_reply)
         msg_box.show()
-
-    def update_status(self):
-        if self.parent_window:
-            self.parent_window.update_status_bar()
-
