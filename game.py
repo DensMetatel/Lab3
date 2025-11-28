@@ -1,65 +1,42 @@
-from dice import Dice
+from random import randint
 
 class Game:
-    def __init__(self, players, field, grid_size=9):
+    def __init__(self, players, field):
         self.players = players
         self.field = field
-        self.grid_size = grid_size
-        self.path = self._build_path()
         self.cells = field.cells
-        for p in self.players:
-            p.set_path(self.path)
         self.current_player_index = 0
 
-    def _build_path(self):
-        path = []
-        size = self.grid_size
-        for x in range(size):
-            path.append((x, 0))
-        for y in range(1, size):
-            path.append((size - 1, y))
-        for x in reversed(range(size - 1)):
-            path.append((x, size - 1))
-        for y in reversed(range(1, size - 1)):
-            path.append((0, y))
-        return path
+        for p in self.players:
+            p.set_path(self.cells)
 
-    def _normalize_roll_result(self, roll_result):
-        if isinstance(roll_result, int):
-            return roll_result, None, None
-        if isinstance(roll_result, (tuple, list)):
-            if len(roll_result) == 0:
-                return 0, None, None
-            if len(roll_result) == 1:
-                return roll_result[0], None, None
-            d1, d2 = roll_result[0], roll_result[1]
-            return d1 + d2, d1, d2
-        try:
-            return int(roll_result), None, None
-        except Exception:
-            return 0, None, None
+    def current_player(self):
+        return self.players[self.current_player_index]
 
     def roll_and_move(self):
-        raw = Dice.roll()
-        steps, d1, d2 = self._normalize_roll_result(raw)
+        player = self.current_player()
 
-        player = self.players[self.current_player_index]
-        player.move(steps)
+        d1, d2 = randint(1,6), randint(1,6)
+        steps = d1 + d2
+        player.move_steps(steps)
+        cell = self.cells[player.position]
 
-        new_index = player.index
-        new_coord = self.path[new_index]
-        new_cell = self.cells[new_index]
-
-        self.current_player_index = (self.current_player_index + 1) % len(self.players)
+        await_purchase = False
+        if cell.cell_type == "street" and cell.owner is None and cell.price > 0:
+            await_purchase = True
+        elif cell.cell_type == "street" and cell.owner is not None and cell.owner != player:
+            rent = max(1, cell.price // 5)
+            player.money -= rent
+            cell.owner.money += rent
 
         return {
             'player': player,
-            'player_name': player.name,
             'steps': steps,
-            'd1': d1,
-            'd2': d2,
-            'new_index': new_index,
-            'new_coord': new_coord,
-            'new_cell': new_cell,
-            'player_money': 1500
+            'new_cell': cell,
+            'await_purchase': await_purchase
         }
+
+    def next_player(self):
+        n = len(self.players)
+        self.current_player_index = (self.current_player_index + 1) % n
+        return self.current_player()

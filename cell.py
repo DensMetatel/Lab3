@@ -2,8 +2,10 @@ from PyQt6.QtWidgets import QGraphicsRectItem
 from PyQt6.QtGui import QBrush, QPen, QColor
 
 class Cell(QGraphicsRectItem):
-    def __init__(self, x, y, size, name="", cell_type="street", color="#FFFFFF", price=100):
-        super().__init__(x, y, size, size)
+    def __init__(self, x, y, size, name="", cell_type="street", color="#FFFFFF", price=0):
+        super().__init__(0, 0, size, size)
+        self.setPos(x, y)
+
         self.name = name
         self.cell_type = cell_type
         self.color = color

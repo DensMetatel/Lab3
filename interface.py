@@ -1,39 +1,56 @@
-from PyQt6.QtWidgets import QPushButton, QWidget, QLabel
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QPushButton, QMessageBox
 
 class Interface(QWidget):
-    def __init__(self, parent, game_logic, button_pos=(0,0), status_pos=(50,250)):
+    def __init__(self, parent=None, game_logic=None):
         super().__init__(parent)
         self.game = game_logic
+        self.parent_window = parent
+        self.waiting_for_purchase = False
 
         self.button = QPushButton("Бросить кубики", self)
-        self.button.move(*button_pos)
-        self.button.clicked.connect(self.on_roll_clicked)
+        self.button.move(0, 0)
+        self.button.clicked.connect(self.on_roll)
         self.button.show()
 
-        self.status = QLabel("Готово", self)
-        self.status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status.move(*status_pos)
-        self.status.resize(400, 50)
-        self.status.show()
-
-        width = max(button_pos[0]+self.button.width(), status_pos[0]+self.status.width())
-        height = max(button_pos[1]+self.button.height(), status_pos[1]+self.status.height())
-        self.setFixedSize(width, height)
+        self.setFixedSize(150, 50)
         self.show()
 
-    def on_roll_clicked(self):
+    def on_roll(self):
+        if self.waiting_for_purchase:
+            return
+
         result = self.game.roll_and_move()
-        name = result['player_name']
-        steps = result['steps']
-        d1 = result['d1']
-        d2 = result['d2']
-        money = result['player_money']
+        player = result['player']
         cell = result['new_cell']
 
-        if d1 is None and d2 is None:
-            msg = f"{name} → ход: {steps}, Деньги: ${money}\nНа клетке: {cell.name}"
+        if result['await_purchase']:
+            self.waiting_for_purchase = True
+            self.ask_purchase(player, cell)
         else:
-            msg = f"{name} → {d1} + {d2} = {steps}, Деньги: ${money}\nНа клетке: {cell.name}"
+            self.game.next_player()
 
-        self.status.setText(msg)
+        self.update_status()
+
+    def ask_purchase(self, player, cell):
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Покупка")
+        msg_box.setText(f"Хотите купить {cell.name} за ${cell.price}?")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        def handle_reply(button):
+            if msg_box.standardButton(button) == QMessageBox.StandardButton.Yes:
+                if player.money >= cell.price:
+                    player.money -= cell.price
+                    cell.owner = player
+            self.waiting_for_purchase = False
+            self.game.next_player()
+            self.update_status()
+            msg_box.deleteLater()
+
+        msg_box.buttonClicked.connect(handle_reply)
+        msg_box.show()
+
+    def update_status(self):
+        if self.parent_window:
+            self.parent_window.update_status_bar()
+
